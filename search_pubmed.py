@@ -7,7 +7,7 @@ import re
 from contextlib import closing
 import HTMLParser
 
-URLBASE = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
+URLBASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 UID_FACE = 'esearch.fcgi'
 SUMM_FACE = 'esummary.fcgi'
 ABST_FACE = 'efetch.fcgi'
@@ -31,6 +31,7 @@ class __MedsciParser(HTMLParser.HTMLParser):
 				self.if_ = float(data)
 
 def get_impact_factor(title='', issn=''):
+        print "get impact factor..."
 	if not title and not issn:
 		return 0
 
@@ -58,6 +59,7 @@ def get_impact_factor(title='', issn=''):
 		return medsci.if_
 
 def get_doi_link(doiterm):
+        print "get doi link..."
 
 	urlbase = 'http://dx.doi.org'
 	h_accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
@@ -104,13 +106,16 @@ def get_doi_link(doiterm):
 
 	return resp.url
 
-def get_uid(term):
+def get_uid(term, limit):
+        print "get uids..."
 	with closing(urllib2.urlopen(URLBASE + UID_FACE, 
-			urllib.urlencode({ 'db':'pubmed', 'term': term }))) as resp:
+            urllib.urlencode({ 'db':'pubmed', 'term': term, 'retmax': limit}))) as resp:
 		tree = ElementTree.parse(resp)
-	return [i.text for i in tree.findall('.//IdList/Id')]
+	t = [i.text for i in tree.findall('.//IdList/Id')]
+        return t[:limit]
 
 def get_summary(*uid):
+        print "get summaries..."
 
 	with closing(urllib2.urlopen(URLBASE + SUMM_FACE,
 			urllib.urlencode({ 'db':'pubmed', 'version':'2.0',
@@ -139,6 +144,7 @@ def parse_paper(etree):
 		issue = check_node(i.find('Issue')), 
 		issn = check_node(i.find('ISSN')), 
 		essn = check_node(i.find('ESSN')), 
+                pubtype = [j.text for j in i.findall('PubType/flag')],
 		pages = check_node(i.find('Pages')))
 		for i in etree.findall('.//DocumentSummarySet/DocumentSummary')
 		]
@@ -146,6 +152,7 @@ def parse_paper(etree):
 	return summ
 
 def get_abstract(*term):
+        print "get abstract..."
 	'''retrieving all the abstract and doi location of papers for given PMID'''
 	
 	with closing(urllib2.urlopen(URLBASE + ABST_FACE,
@@ -155,8 +162,8 @@ def get_abstract(*term):
 
 	for i in tree.findall('.//PubmedArticle'):
 		abstract = [ j.text for j in i.findall('.//Article/Abstract/AbstractText')]
-		loc = i.find('.//Article/ELocationID')
-		if loc is not None and loc.attrib['EIdType'] == 'doi':
+		loc = i.find('.//Article/ELocationID[@EIdType="doi"]')
+		if loc is not None:
 			eloc = loc.text
 		else:
 			eloc = ''
@@ -178,6 +185,8 @@ def print_info(result,verbose=0):
 		print ', '.join(result['authors'])
 		print 'PubDate: '.ljust(padding), 
 		print result['pubdate']
+		print 'PubType: '.ljust(padding), 
+                print ', '.join(result['pubtype'])
 
 		if verbose > 2:
 			print 'Volume: '.ljust(padding), 
@@ -225,25 +234,26 @@ if __name__ == '__main__':
 	if not term:
 		raise SystemExit
 
-	uids = get_uid(term)
+	#uids = get_uid(term, args.limit)
 
-	if len(uids) > args.limit :
-		raise SystemExit('More than {0} results returned, consider using more specific terms', args.limit)
+	#if len(uids) > args.limit :
+	#	raise SystemExit('More than {0} results returned, consider using more specific terms', args.limit)
 
-	result = parse_paper(get_summary(*get_uid(term)))
+	result = parse_paper(get_summary(*get_uid(term, args.limit)))
 
 	if args.verb > 1:
 		pmids = [p['pmid'] for p in result]
 		for idx, a in enumerate(get_abstract(*pmids)):
 			result[idx]['abstract'] = a[0]
 			if args.verb > 4 and a[1]:
-				try:
-					result[idx]['link'] = get_doi_link(a[1])
+				#try:
+				#	result[idx]['link'] = get_doi_link2(a[1])
 # if retrieving link from doi is waiting too long, user can cancel this.
-				except KeyboardInterrupt:
-					result[idx]['link'] = a[1]
-			else:
-				result[idx]['link'] = a[1]
+				#except KeyboardInterrupt:
+				#	result[idx]['link'] = a[1]
+			#else:
+			#	result[idx]['link'] = a[1]
+                            result[idx]['link'] = 'https://doi.org/' + a[1]
 	
 			if args.verb > 5:
 				result[idx]['if'] = get_impact_factor(title=result[idx]['source'], issn=result[idx]['issn'])
