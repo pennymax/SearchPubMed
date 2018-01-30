@@ -5,18 +5,18 @@ The usage is very simple.
 
 Search by title:
 ```sh
-./search_pubmed.py 'Changes in the calcium-parathyroid hormone-vitamin d axis and prognosis for critically ill patients: a prospective observational study'
+python ./search_pubmed.py 'Changes in the calcium-parathyroid hormone-vitamin d axis and prognosis for critically ill patients: a prospective observational study'
 ```
 
 or any pubmed compatible rules:  
 ```sh
-./search_pubmed.py '24073265[uid] OR 24073266[uid]'
+python ./search_pubmed.py '24073265[uid] OR 24073266[uid]'
 ```
 
 Passing one or more '-v's will give more detailed information.  
 ```sh
 
-./search_pubmed.py -vvvvv '24073265[uid]'
+python ./search_pubmed.py -vvvvv '24073265[uid]'
 
 ```
 
