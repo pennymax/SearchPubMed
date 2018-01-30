@@ -23,7 +23,7 @@ python ./search_pubmed.py -vvvvv '24073265[uid]'
 Passing search query
 ```sh
 
-python search_pubmed.py -l 5 -vvvvv '(escitalopram) AND Tachycardia'
+python ./search_pubmed.py -l 5 -vvvvv '(escitalopram) AND Tachycardia'
 
 ```
 
